@@ -12,6 +12,18 @@
     .empty { color: #aaa; font-size: 14px; }
     .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin: 24px 0; }
     .summary-value { display: block; font-size: 28px; font-weight: 700; margin-top: 6px; }
+    .pill-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+    .pill { background: #252525; border: 1px solid #3d3d3d; border-radius: 999px; padding: 6px 10px; font-size: 12px; }
+    .report-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+    .report-block h3 { margin: 0 0 10px; font-size: 14px; color: #ddd; }
+    .report-copy { margin-top: 18px; }
+    .report-copy button,
+    .ip-link { background: transparent; color: #9cc9ff; border: 1px solid transparent; border-radius: 8px; padding: 2px 6px; cursor: pointer; font: inherit; }
+    .report-copy button:hover,
+    .ip-link:hover { border-color: #446a91; background: #1a2430; }
+    .ip-link.is-selected { background: #20344a; border-color: #5f9ad6; color: #d9ecff; }
+    .report-meta { margin-bottom: 18px; }
+    .report-meta strong { display: block; margin-bottom: 6px; font-size: 18px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     td, th { border-bottom: 1px solid #333; padding: 6px; text-align: left; vertical-align: top; }
     .bar { fill: steelblue; }
@@ -71,6 +83,11 @@
     <table id="recent"></table>
   </div>
 
+  <div class="card full" id="ipReportCard" hidden>
+    <h2 id="ipReportTitle">IP Report</h2>
+    <div id="ipReport"></div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
   <script>
     const DATA_BASE_URL = new URL('./data/', window.location.href);
@@ -78,6 +95,8 @@
       { url: new URL('log-summary.json', DATA_BASE_URL), sample: false },
       { url: new URL('log-summary.sample.json', DATA_BASE_URL), sample: true }
     ];
+    let selectedIp = null;
+    let currentData = null;
 
     function escapeHtml(value) {
       return String(value || '')
@@ -121,6 +140,7 @@
         document.querySelector('#meta').textContent =
           `Generated: ${data.generated_at} | Total parsed: ${data.total}`;
         renderSummaryCards(data);
+        currentData = data;
 
         if (sample) {
           setNotice('Live data is unavailable. Showing sample demo data instead.', true);
@@ -131,13 +151,28 @@
         renderCategoryChart(data);
         renderTimelineChart(data);
         renderTables(data);
+        syncSelectedIp(data);
       } catch (error) {
         document.querySelector('#meta').textContent =
           'Could not load dashboard data.';
         renderSummaryCards({ total: 0, by_status: {}, by_category: {} });
+        currentData = null;
+        selectedIp = null;
+        renderEmptyIpReport();
 
         setNotice('Neither live data nor sample data could be loaded.', true);
       }
+    }
+
+    function syncSelectedIp(data) {
+      const ipReports = data.ip_reports || {};
+      if (selectedIp && ipReports[selectedIp]) {
+        renderIpReport(selectedIp, ipReports[selectedIp]);
+        return;
+      }
+
+      selectedIp = null;
+      renderEmptyIpReport();
     }
 
     function renderSummaryCards(data) {
@@ -305,7 +340,7 @@
       document.querySelector('#topIps').innerHTML =
         '<tr><th>IP</th><th>Hits</th></tr>' +
         renderTableRows(data.top_ips || [], 2, 'No IP data yet.', ([ip, count]) =>
-          `<tr><td>${escapeHtml(ip)}</td><td>${count}</td></tr>`
+          `<tr><td><button type="button" class="ip-link${selectedIp === ip ? ' is-selected' : ''}" data-ip="${escapeHtml(ip)}">${escapeHtml(ip)}</button></td><td>${count}</td></tr>`
         );
 
       document.querySelector('#topHosts').innerHTML =
@@ -315,9 +350,10 @@
         );
 
       document.querySelector('#recent').innerHTML =
-        '<tr><th>IP</th><th>Host</th><th>Status</th><th>Category</th><th>Request</th></tr>' +
-        renderTableRows((data.recent || []).slice().reverse(), 5, 'No recent requests yet.', (r) =>
+        '<tr><th>Time</th><th>IP</th><th>Host</th><th>Status</th><th>Category</th><th>Request</th></tr>' +
+        renderTableRows((data.recent || []).slice().reverse(), 6, 'No recent requests yet.', (r) =>
           `<tr>
+            <td>${escapeHtml(r.time)}</td>
             <td>${escapeHtml(r.ip)}</td>
             <td>${escapeHtml(r.host)}</td>
             <td>${escapeHtml(r.status)}</td>
@@ -325,6 +361,8 @@
             <td>${escapeHtml(r.request)}</td>
           </tr>`
         );
+
+      bindIpLinks();
     }
 
     function renderTableRows(items, columns, emptyMessage, renderRow) {
@@ -333,6 +371,128 @@
       }
 
       return items.map(renderRow).join('');
+    }
+
+    function bindIpLinks() {
+      document.querySelectorAll('.ip-link').forEach((button) => {
+        button.addEventListener('click', () => {
+          const ip = button.dataset.ip;
+          selectedIp = ip;
+          renderTables(currentData || {});
+          renderIpReport(ip, currentData && currentData.ip_reports ? currentData.ip_reports[ip] : null);
+        });
+      });
+    }
+
+    function renderEmptyIpReport() {
+      const card = document.querySelector('#ipReportCard');
+      card.hidden = true;
+      document.querySelector('#ipReportTitle').textContent = 'IP Report';
+      document.querySelector('#ipReport').innerHTML = '';
+    }
+
+    function renderIpReport(ip, report) {
+      const card = document.querySelector('#ipReportCard');
+      const title = document.querySelector('#ipReportTitle');
+      const body = document.querySelector('#ipReport');
+
+      card.hidden = false;
+      title.textContent = `IP Report: ${ip}`;
+
+      if (!report) {
+        body.innerHTML = '<p class="empty">No report data available for this IP.</p>';
+        return;
+      }
+
+      body.innerHTML = `
+        <div class="report-meta">
+          <strong>${escapeHtml(report.classification || 'Unknown')}</strong>
+          <div>Total requests: ${escapeHtml(report.total)}</div>
+          <div>First seen: ${escapeHtml(report.first_seen)}</div>
+          <div>Last seen: ${escapeHtml(report.last_seen)}</div>
+        </div>
+        <div class="report-grid">
+          <div class="report-block">
+            <h3>Hosts targeted</h3>
+            ${renderPillList(report.hosts || [], ([host, count]) => `${escapeHtml(host)} (${count})`, 'No hosts available.')}
+          </div>
+          <div class="report-block">
+            <h3>Status breakdown</h3>
+            ${renderPillList(Object.entries(report.statuses || {}), ([status, count]) => `${escapeHtml(status)} (${count})`, 'No status data available.')}
+          </div>
+          <div class="report-block">
+            <h3>Category breakdown</h3>
+            ${renderPillList(Object.entries(report.categories || {}), ([category, count]) => `${escapeHtml(category)} (${count})`, 'No category data available.')}
+          </div>
+          <div class="report-block">
+            <h3>Top requested paths</h3>
+            ${renderPillList(report.top_paths || [], ([path, count]) => `${escapeHtml(path)} (${count})`, 'No path data available.')}
+          </div>
+          <div class="report-block">
+            <h3>User agents</h3>
+            ${renderPillList(report.user_agents || [], ([ua, count]) => `${escapeHtml(ua)} (${count})`, 'No user-agent data available.')}
+          </div>
+        </div>
+        <div class="report-block">
+          <h3>Recent requests from this IP</h3>
+          <div class="table-wrap">
+            <table>
+              <tr><th>Time</th><th>Host</th><th>Status</th><th>Category</th><th>Request</th></tr>
+              ${renderTableRows((report.recent || []).slice().reverse(), 5, 'No recent requests available.', (row) => `
+                <tr>
+                  <td>${escapeHtml(row.time)}</td>
+                  <td>${escapeHtml(row.host)}</td>
+                  <td>${escapeHtml(row.status)}</td>
+                  <td>${escapeHtml(row.category)}</td>
+                  <td>${escapeHtml(row.request)}</td>
+                </tr>
+              `)}
+            </table>
+          </div>
+        </div>
+        <div class="report-copy">
+          <button type="button" data-copy-ip="${escapeHtml(ip)}">Copy Markdown report</button>
+        </div>
+      `;
+
+      const copyButton = body.querySelector('[data-copy-ip]');
+      if (copyButton) {
+        copyButton.addEventListener('click', async () => {
+          const markdown = buildMarkdownReport(ip, report);
+          try {
+            await navigator.clipboard.writeText(markdown);
+            copyButton.textContent = 'Copied Markdown report';
+          } catch (error) {
+            copyButton.textContent = 'Copy failed';
+          }
+        });
+      }
+    }
+
+    function renderPillList(items, formatter, emptyMessage) {
+      if (!items.length) {
+        return `<p class="empty">${escapeHtml(emptyMessage)}</p>`;
+      }
+
+      return `<ul class="pill-list">${items.map((item) => `<li class="pill">${formatter(item)}</li>`).join('')}</ul>`;
+    }
+
+    function buildMarkdownReport(ip, report) {
+      return [
+        `## IP Report: ${ip}`,
+        '',
+        `Classification: ${report.classification || 'Unknown'}`,
+        '',
+        `Total requests: ${report.total}`,
+        `First seen: ${report.first_seen}`,
+        `Last seen: ${report.last_seen}`,
+        '',
+        'Top paths:',
+        ...(report.top_paths || []).map(([path, count]) => `- ${path}: ${count}`),
+        '',
+        'Hosts targeted:',
+        ...(report.hosts || []).map(([host, count]) => `- ${host}: ${count}`)
+      ].join('\n');
     }
 
     load();

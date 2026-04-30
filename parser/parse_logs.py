@@ -13,6 +13,8 @@ DEFAULT_LIMIT = 5000
 TOP_LIMIT = 20
 RECENT_LIMIT = 100
 TIMELINE_LIMIT = 60
+IP_REPORT_RECENT_LIMIT = 10
+IP_REPORT_TOP_LIMIT = 10
 
 EXTENDED_PATTERN = re.compile(
     r'^(?P<ip>\S+)\s+'
@@ -65,6 +67,23 @@ def parse_timestamp(value):
         return None
 
 
+def parse_request_details(request):
+    parts = request.split()
+    if len(parts) >= 2:
+        method = parts[0]
+        raw_path = parts[1]
+        normalized_path = raw_path.split("?", 1)[0] or raw_path
+        return {
+            "method": method,
+            "normalized_path": normalized_path,
+        }
+
+    return {
+        "method": "",
+        "normalized_path": request,
+    }
+
+
 def parse_line(line):
     match = EXTENDED_PATTERN.match(line) or COMBINED_PATTERN.match(line)
     if not match:
@@ -82,15 +101,19 @@ def parse_line(line):
     user_agent = data["ua"].strip()
     host = data["host"] if data["host"] != "-" else data["vhost"]
     minute_key = timestamp.strftime("%Y-%m-%d %H:%M")
+    request_details = parse_request_details(request)
 
     return {
         "ip": data["ip"],
         "vhost": data["vhost"],
         "host": host,
         "time": data["time"],
+        "timestamp": timestamp,
         "minute": timestamp.strftime("%H:%M"),
         "minute_key": minute_key,
         "request": request,
+        "method": request_details["method"],
+        "path": request_details["normalized_path"],
         "status": data["status"],
         "ua": user_agent,
         "category": categorize_request(request, user_agent),
@@ -189,6 +212,87 @@ def tail_lines(path, limit):
         return list(deque(handle, maxlen=limit))
 
 
+def summarize_public_row(row):
+    item = dict(row)
+    item.pop("minute_key", None)
+    item.pop("timestamp", None)
+    item.pop("method", None)
+    item.pop("path", None)
+    return item
+
+
+def classify_ip_report(categories):
+    if categories.get("wp-login", 0) >= 3:
+        return "WordPress brute force"
+
+    if categories.get("xmlrpc", 0) > 0:
+        return "XML-RPC abuse"
+
+    scanner_categories = {
+        ".env probe",
+        ".git probe",
+        "swagger/api docs",
+        "graphql/api probing",
+        "laravel debug/telescope",
+        "actuator/env",
+        "phpinfo/info.php",
+        "php-cgi exploit",
+        "cmd injection",
+        "wordpress/plugin probe",
+        "wp-admin setup/install",
+    }
+    if any(categories.get(name, 0) > 0 for name in scanner_categories):
+        return "Scanner / recon"
+
+    if categories.get("known crawler", 0) > 0:
+        return "Crawler"
+
+    if categories.get("protocol probe", 0) > 0:
+        return "Protocol noise"
+
+    if categories:
+        dominant_category = max(categories.items(), key=lambda item: item[1])[0]
+        if dominant_category in {"normal", "video/app"}:
+            return "Normal traffic"
+
+    return "Unknown"
+
+
+def build_ip_reports(rows):
+    grouped = defaultdict(list)
+    for row in rows:
+        grouped[row["ip"]].append(row)
+
+    reports = {}
+    for ip, ip_rows in grouped.items():
+        sorted_rows = sorted(ip_rows, key=lambda row: row["timestamp"])
+        categories = dict(Counter(row["category"] for row in ip_rows))
+        reports[ip] = {
+            "ip": ip,
+            "total": len(ip_rows),
+            "first_seen": sorted_rows[0]["time"],
+            "last_seen": sorted_rows[-1]["time"],
+            "hosts": Counter(row["host"] for row in ip_rows).most_common(IP_REPORT_TOP_LIMIT),
+            "statuses": dict(Counter(row["status"] for row in ip_rows)),
+            "categories": categories,
+            "top_paths": Counter(row["path"] for row in ip_rows).most_common(IP_REPORT_TOP_LIMIT),
+            "user_agents": Counter(row["ua"] for row in ip_rows).most_common(IP_REPORT_TOP_LIMIT),
+            "recent": [
+                {
+                    "time": row["time"],
+                    "host": row["host"],
+                    "status": row["status"],
+                    "category": row["category"],
+                    "request": row["request"],
+                }
+                for row in sorted_rows[-IP_REPORT_RECENT_LIMIT:]
+            ],
+            "classification": classify_ip_report(categories),
+        }
+
+    return reports
+
+
 def build_summary(rows):
     by_minute_category = defaultdict(Counter)
     for row in rows:
@@ -204,9 +308,7 @@ def build_summary(rows):
 
     recent_rows = []
     for row in rows[-RECENT_LIMIT:]:
-        item = dict(row)
-        item.pop("minute_key", None)
-        recent_rows.append(item)
+        recent_rows.append(summarize_public_row(row))
 
     return {
         "generated_at": datetime.now(timezone.utc).astimezone().isoformat(),
@@ -215,6 +317,7 @@ def build_summary(rows):
         "by_status": dict(Counter(row["status"] for row in rows)),
         "top_ips": Counter(row["ip"] for row in rows).most_common(TOP_LIMIT),
         "top_hosts": Counter(row["host"] for row in rows).most_common(TOP_LIMIT),
+        "ip_reports": build_ip_reports(rows),
         "timeline": timeline[-TIMELINE_LIMIT:],
         "recent": recent_rows,
     }
