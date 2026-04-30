@@ -1,0 +1,342 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Apache Log Dashboard</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 24px; background: #111; color: #eee; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+    .card { background: #1b1b1b; border-radius: 12px; padding: 18px; }
+    .notice { margin: 16px 0 0; padding: 12px 16px; border-radius: 10px; background: #332400; color: #ffd980; border: 1px solid #665000; display: none; }
+    .notice.is-visible { display: block; }
+    .empty { color: #aaa; font-size: 14px; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin: 24px 0; }
+    .summary-value { display: block; font-size: 28px; font-weight: 700; margin-top: 6px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    td, th { border-bottom: 1px solid #333; padding: 6px; text-align: left; vertical-align: top; }
+    .bar { fill: steelblue; }
+    .full { margin-top: 24px; }
+    .table-wrap { overflow-x: auto; }
+    svg text { font-family: system-ui, sans-serif; }
+  </style>
+</head>
+<body>
+  <h1>Apache Log Dashboard</h1>
+  <p id="meta"></p>
+  <div id="dataNotice" class="notice" role="status" aria-live="polite"></div>
+
+  <div class="summary">
+    <div class="card">
+      <div>Total parsed requests</div>
+      <span id="totalRequests" class="summary-value">0</span>
+    </div>
+    <div class="card">
+      <div>Top status code</div>
+      <span id="topStatus" class="summary-value">-</span>
+    </div>
+    <div class="card">
+      <div>Distinct categories</div>
+      <span id="categoryCount" class="summary-value">0</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Requests by category</h2>
+      <svg id="categoryChart" width="600" height="320"></svg>
+    </div>
+
+    <div class="card">
+      <h2>Top IPs</h2>
+      <div class="table-wrap">
+        <table id="topIps"></table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Top hosts</h2>
+      <div class="table-wrap">
+        <table id="topHosts"></table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card full">
+    <h2>Attack types per minute</h2>
+    <svg id="timelineChart" width="1000" height="360"></svg>
+  </div>
+
+  <div class="card full">
+    <h2>Recent requests</h2>
+    <table id="recent"></table>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+    const DATA_BASE_URL = new URL('./data/', window.location.href);
+    const DATA_SOURCES = [
+      { url: new URL('log-summary.json', DATA_BASE_URL), sample: false },
+      { url: new URL('log-summary.sample.json', DATA_BASE_URL), sample: true }
+    ];
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+    }
+
+    async function fetchSummary() {
+      const cacheBuster = '?_=' + Date.now();
+
+      for (const source of DATA_SOURCES) {
+        try {
+          const response = await fetch(source.url.href + cacheBuster);
+          if (!response.ok) {
+            continue;
+          }
+
+          const data = await response.json();
+          return { data, sample: source.sample };
+        } catch (error) {
+          continue;
+        }
+      }
+
+      throw new Error('Could not load live or sample data.');
+    }
+
+    function setNotice(message, isVisible) {
+      const notice = document.querySelector('#dataNotice');
+      notice.textContent = message;
+      notice.classList.toggle('is-visible', isVisible);
+    }
+
+    async function load() {
+      try {
+        const { data, sample } = await fetchSummary();
+
+        document.querySelector('#meta').textContent =
+          `Generated: ${data.generated_at} | Total parsed: ${data.total}`;
+        renderSummaryCards(data);
+
+        if (sample) {
+          setNotice('Live data is unavailable. Showing sample demo data instead.', true);
+        } else {
+          setNotice('', false);
+        }
+
+        renderCategoryChart(data);
+        renderTimelineChart(data);
+        renderTables(data);
+      } catch (error) {
+        document.querySelector('#meta').textContent =
+          'Could not load dashboard data.';
+        renderSummaryCards({ total: 0, by_status: {}, by_category: {} });
+
+        setNotice('Neither live data nor sample data could be loaded.', true);
+      }
+    }
+
+    function renderSummaryCards(data) {
+      const total = Number(data.total || 0);
+      const statuses = Object.entries(data.by_status || {})
+        .sort((a, b) => Number(b[1]) - Number(a[1]));
+      const categories = Object.keys(data.by_category || {});
+
+      document.querySelector('#totalRequests').textContent = total;
+      document.querySelector('#topStatus').textContent =
+        statuses.length ? `${statuses[0][0]} (${statuses[0][1]})` : '-';
+      document.querySelector('#categoryCount').textContent = categories.length;
+    }
+
+    function renderCategoryChart(data) {
+      const categories = Object.entries(data.by_category || {})
+        .map(([name, value]) => ({ name, value }))
+        .sort((a, b) => b.value - a.value);
+
+      const svg = d3.select('#categoryChart');
+      svg.selectAll('*').remove();
+
+      const width = 600, height = 320;
+      const margin = { top: 10, right: 20, bottom: 90, left: 50 };
+
+      if (!categories.length) {
+        svg.append('text')
+          .attr('x', 30)
+          .attr('y', 50)
+          .style('fill', '#aaa')
+          .text('No category data available yet.');
+        return;
+      }
+
+      const x = d3.scaleBand()
+        .domain(categories.map(d => d.name))
+        .range([margin.left, width - margin.right])
+        .padding(0.2);
+
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(categories, d => d.value) || 1])
+        .nice()
+        .range([height - margin.bottom, margin.top]);
+
+      svg.append('g')
+        .attr('transform', `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x))
+        .selectAll('text')
+        .attr('transform', 'rotate(-35)')
+        .style('text-anchor', 'end')
+        .style('fill', '#eee');
+
+      svg.append('g')
+        .attr('transform', `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y))
+        .selectAll('text')
+        .style('fill', '#eee');
+
+      svg.selectAll('rect')
+        .data(categories)
+        .join('rect')
+        .attr('class', 'bar')
+        .attr('x', d => x(d.name))
+        .attr('y', d => y(d.value))
+        .attr('width', x.bandwidth())
+        .attr('height', d => y(0) - y(d.value));
+    }
+
+    function renderTimelineChart(data) {
+      const timeline = data.timeline || [];
+
+      const ignoreKeys = new Set([
+        'minute',
+        'normal',
+        'video/app',
+        'claude bot',
+        'internet measurement'
+      ]);
+
+      const keys = Array.from(new Set(
+        timeline.flatMap(d => Object.keys(d).filter(k => !ignoreKeys.has(k)))
+      ));
+
+      const svg = d3.select('#timelineChart');
+      svg.selectAll('*').remove();
+
+      const width = 1000;
+      const height = 360;
+      const margin = { top: 20, right: 180, bottom: 50, left: 50 };
+
+      if (!timeline.length || !keys.length) {
+        svg.append('text')
+          .attr('x', 30)
+          .attr('y', 50)
+          .style('fill', '#aaa')
+          .text('No attack timeline data yet.');
+        return;
+      }
+
+      const stacked = d3.stack()
+        .keys(keys)
+        .value((d, key) => d[key] || 0)(timeline);
+
+      const x = d3.scaleBand()
+        .domain(timeline.map(d => d.minute))
+        .range([margin.left, width - margin.right])
+        .padding(0.15);
+
+      const y = d3.scaleLinear()
+        .domain([0, d3.max(stacked, layer => d3.max(layer, d => d[1])) || 1])
+        .nice()
+        .range([height - margin.bottom, margin.top]);
+
+      const color = d3.scaleOrdinal()
+        .domain(keys)
+        .range(d3.schemeTableau10);
+
+      svg.append('g')
+        .attr('transform', `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(x).tickValues(x.domain().filter((_, i) => i % 5 === 0)))
+        .selectAll('text')
+        .style('fill', '#eee');
+
+      svg.append('g')
+        .attr('transform', `translate(${margin.left},0)`)
+        .call(d3.axisLeft(y))
+        .selectAll('text')
+        .style('fill', '#eee');
+
+      svg.selectAll('g.layer')
+        .data(stacked)
+        .join('g')
+        .attr('class', 'layer')
+        .attr('fill', d => color(d.key))
+        .selectAll('rect')
+        .data(d => d)
+        .join('rect')
+        .attr('x', d => x(d.data.minute))
+        .attr('y', d => y(d[1]))
+        .attr('height', d => y(d[0]) - y(d[1]))
+        .attr('width', x.bandwidth());
+
+      const legend = svg.append('g')
+        .attr('transform', `translate(${width - margin.right + 20}, ${margin.top})`);
+
+      keys.forEach((key, i) => {
+        const row = legend.append('g')
+          .attr('transform', `translate(0, ${i * 22})`);
+
+        row.append('rect')
+          .attr('width', 12)
+          .attr('height', 12)
+          .attr('fill', color(key));
+
+        row.append('text')
+          .attr('x', 18)
+          .attr('y', 11)
+          .text(key)
+          .style('fill', '#eee')
+          .style('font-size', '12px');
+      });
+    }
+
+    function renderTables(data) {
+      document.querySelector('#topIps').innerHTML =
+        '<tr><th>IP</th><th>Hits</th></tr>' +
+        renderTableRows(data.top_ips || [], 2, 'No IP data yet.', ([ip, count]) =>
+          `<tr><td>${escapeHtml(ip)}</td><td>${count}</td></tr>`
+        );
+
+      document.querySelector('#topHosts').innerHTML =
+        '<tr><th>Host</th><th>Hits</th></tr>' +
+        renderTableRows(data.top_hosts || [], 2, 'No host data yet.', ([host, count]) =>
+          `<tr><td>${escapeHtml(host)}</td><td>${count}</td></tr>`
+        );
+
+      document.querySelector('#recent').innerHTML =
+        '<tr><th>IP</th><th>Host</th><th>Status</th><th>Category</th><th>Request</th></tr>' +
+        renderTableRows((data.recent || []).slice().reverse(), 5, 'No recent requests yet.', (r) =>
+          `<tr>
+            <td>${escapeHtml(r.ip)}</td>
+            <td>${escapeHtml(r.host)}</td>
+            <td>${escapeHtml(r.status)}</td>
+            <td>${escapeHtml(r.category)}</td>
+            <td>${escapeHtml(r.request)}</td>
+          </tr>`
+        );
+    }
+
+    function renderTableRows(items, columns, emptyMessage, renderRow) {
+      if (!items.length) {
+        return `<tr><td colspan="${columns}" class="empty">${escapeHtml(emptyMessage)}</td></tr>`;
+      }
+
+      return items.map(renderRow).join('');
+    }
+
+    load();
+    setInterval(load, 60000);
+  </script>
+</body>
+</html>

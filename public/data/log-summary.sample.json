@@ -1,0 +1,230 @@
+{
+  "generated_at": "2026-04-29T10:12:00-06:00",
+  "total": 48,
+  "by_category": {
+    "normal": 18,
+    "xmlrpc": 7,
+    "wp-login": 5,
+    ".env probe": 4,
+    ".git probe": 3,
+    "swagger/api docs": 2,
+    "graphql/api probing": 2,
+    "laravel debug/telescope": 2,
+    "php-cgi exploit": 1,
+    "protocol probe": 2,
+    "known crawler": 1,
+    "video/app": 1
+  },
+  "by_status": {
+    "200": 19,
+    "206": 1,
+    "301": 2,
+    "403": 5,
+    "404": 16,
+    "405": 4,
+    "400": 1
+  },
+  "top_ips": [
+    [
+      "203.0.113.10",
+      12
+    ],
+    [
+      "198.51.100.20",
+      9
+    ],
+    [
+      "192.0.2.30",
+      7
+    ],
+    [
+      "203.0.113.44",
+      6
+    ],
+    [
+      "198.51.100.77",
+      5
+    ]
+  ],
+  "top_hosts": [
+    [
+      "example.com",
+      24
+    ],
+    [
+      "logs.example.com",
+      15
+    ],
+    [
+      "staging.example.com",
+      9
+    ]
+  ],
+  "timeline": [
+    {
+      "minute": "10:03",
+      "normal": 2,
+      "known crawler": 1
+    },
+    {
+      "minute": "10:04",
+      "xmlrpc": 2,
+      "wp-login": 1
+    },
+    {
+      "minute": "10:05",
+      ".env probe": 1,
+      ".git probe": 1
+    },
+    {
+      "minute": "10:06",
+      "swagger/api docs": 1,
+      "graphql/api probing": 1
+    },
+    {
+      "minute": "10:07",
+      "laravel debug/telescope": 2,
+      "normal": 1
+    },
+    {
+      "minute": "10:08",
+      "xmlrpc": 3,
+      "wp-login": 2,
+      "protocol probe": 1
+    },
+    {
+      "minute": "10:09",
+      ".env probe": 2,
+      ".git probe": 1,
+      "php-cgi exploit": 1
+    },
+    {
+      "minute": "10:10",
+      "normal": 4,
+      "video/app": 1
+    },
+    {
+      "minute": "10:11",
+      "graphql/api probing": 1,
+      "swagger/api docs": 1,
+      "protocol probe": 1
+    },
+    {
+      "minute": "10:12",
+      "normal": 3,
+      "xmlrpc": 2
+    }
+  ],
+  "recent": [
+    {
+      "ip": "203.0.113.10",
+      "vhost": "example.com",
+      "host": "example.com",
+      "time": "29/Apr/2026:10:12:01 -0600",
+      "minute": "10:12",
+      "request": "POST /xmlrpc.php HTTP/1.1",
+      "status": "405",
+      "ua": "WordPress.com",
+      "category": "xmlrpc"
+    },
+    {
+      "ip": "198.51.100.20",
+      "vhost": "staging.example.com",
+      "host": "staging.example.com",
+      "time": "29/Apr/2026:10:11:52 -0600",
+      "minute": "10:11",
+      "request": "GET /.env HTTP/1.1",
+      "status": "404",
+      "ua": "curl/8.0",
+      "category": ".env probe"
+    },
+    {
+      "ip": "192.0.2.30",
+      "vhost": "logs.example.com",
+      "host": "logs.example.com",
+      "time": "29/Apr/2026:10:11:40 -0600",
+      "minute": "10:11",
+      "request": "GET /.git/config HTTP/1.1",
+      "status": "404",
+      "ua": "Mozilla/5.0",
+      "category": ".git probe"
+    },
+    {
+      "ip": "203.0.113.44",
+      "vhost": "example.com",
+      "host": "example.com",
+      "time": "29/Apr/2026:10:10:57 -0600",
+      "minute": "10:10",
+      "request": "POST /wp-login.php HTTP/1.1",
+      "status": "403",
+      "ua": "Mozilla/5.0",
+      "category": "wp-login"
+    },
+    {
+      "ip": "198.51.100.77",
+      "vhost": "example.com",
+      "host": "example.com",
+      "time": "29/Apr/2026:10:10:36 -0600",
+      "minute": "10:10",
+      "request": "GET /swagger-ui HTTP/1.1",
+      "status": "404",
+      "ua": "Mozilla/5.0",
+      "category": "swagger/api docs"
+    },
+    {
+      "ip": "203.0.113.10",
+      "vhost": "logs.example.com",
+      "host": "logs.example.com",
+      "time": "29/Apr/2026:10:10:09 -0600",
+      "minute": "10:10",
+      "request": "POST /graphql HTTP/1.1",
+      "status": "404",
+      "ua": "Mozilla/5.0",
+      "category": "graphql/api probing"
+    },
+    {
+      "ip": "198.51.100.20",
+      "vhost": "staging.example.com",
+      "host": "staging.example.com",
+      "time": "29/Apr/2026:10:09:43 -0600",
+      "minute": "10:09",
+      "request": "GET /telescope/requests HTTP/1.1",
+      "status": "404",
+      "ua": "Mozilla/5.0",
+      "category": "laravel debug/telescope"
+    },
+    {
+      "ip": "192.0.2.30",
+      "vhost": "example.com",
+      "host": "example.com",
+      "time": "29/Apr/2026:10:09:20 -0600",
+      "minute": "10:09",
+      "request": "POST /php-cgi/php-cgi.exe?%2dd+allow_url_include%3don HTTP/1.1",
+      "status": "404",
+      "ua": "Mozilla/5.0",
+      "category": "php-cgi exploit"
+    },
+    {
+      "ip": "203.0.113.44",
+      "vhost": "example.com",
+      "host": "example.com",
+      "time": "29/Apr/2026:10:08:58 -0600",
+      "minute": "10:08",
+      "request": "\\x16\\x03\\x01\\x02\\x00",
+      "status": "400",
+      "ua": "-",
+      "category": "protocol probe"
+    },
+    {
+      "ip": "198.51.100.77",
+      "vhost": "logs.example.com",
+      "host": "logs.example.com",
+      "time": "29/Apr/2026:10:08:14 -0600",
+      "minute": "10:08",
+      "request": "GET /stream/video.mp4 HTTP/1.1",
+      "status": "206",
+      "ua": "ExamplePlayer/1.0",
+      "category": "video/app"
+    }
+  ]
+}

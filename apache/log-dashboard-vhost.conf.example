@@ -1,0 +1,33 @@
+<VirtualHost *:443>
+    ServerName logs.example.com
+    DocumentRoot /var/www/log-dashboard/public
+
+    SSLEngine on
+    SSLCertificateFile /path/to/fullchain.pem
+    SSLCertificateKeyFile /path/to/privkey.pem
+
+    <Directory /var/www/log-dashboard/public>
+        Options Indexes FollowSymLinks
+        AllowOverride None
+        Require all granted
+    </Directory>
+
+    <Location />
+        AuthType Basic
+        AuthName "Apache Log Dashboard"
+        AuthBasicProvider file
+        AuthUserFile /path/to/.htpasswd
+        Require valid-user
+    </Location>
+
+    # Optional IP allowlist example:
+    # <Location />
+    #     Require ip YOUR.PUBLIC.IP.HERE
+    # </Location>
+
+    ErrorLog /var/log/httpd/log-dashboard-error.log
+    CustomLog /var/log/httpd/log-dashboard-access.log combined
+</VirtualHost>
+
+# Apache vhost load order matters.
+# A default deny vhost should load first so unknown hosts do not fall through to this site.

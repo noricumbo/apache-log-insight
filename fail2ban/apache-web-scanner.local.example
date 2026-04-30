@@ -1,0 +1,9 @@
+[apache-web-scanner]
+enabled = true
+filter = apache-web-scanner
+logpath = /var/log/httpd/access_log
+port = http,https
+maxretry = 1
+findtime = 600
+bantime = 86400
+action = firewallcmd-rich-rules[name=apache-web-scanner, port="http,https", protocol=tcp]

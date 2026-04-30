@@ -1,0 +1,13 @@
+<VirtualHost *:443>
+    ServerName default.invalid
+
+    SSLEngine on
+    SSLCertificateFile /path/to/fullchain.pem
+    SSLCertificateKeyFile /path/to/privkey.pem
+
+    DocumentRoot /var/www/empty
+
+    <Location />
+        Require all denied
+    </Location>
+</VirtualHost>

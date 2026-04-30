@@ -1,0 +1,35 @@
+# Real logs
+*.log
+access_log*
+error_log*
+*_log
+
+# Generated data
+public/data/log-summary.json
+data/*.json
+!public/data/log-summary.sample.json
+
+# Secrets / certs
+.env
+*.pem
+*.key
+*.crt
+.htpasswd*
+letsencrypt/
+certbot/
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Internal docs
+docs/internal/*
+!docs/internal/.gitkeep
+docs/drafts/

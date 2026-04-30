@@ -1,0 +1,8 @@
+<VirtualHost *:80>
+    ServerName default.invalid
+    DocumentRoot /var/www/empty
+
+    <Location />
+        Require all denied
+    </Location>
+</VirtualHost>
