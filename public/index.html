@@ -5,6 +5,7 @@
   <title>Apache Log Dashboard</title>
   <style>
     body { font-family: system-ui, sans-serif; padding: 24px; background: #111; color: #eee; }
+    body.modal-open { overflow: hidden; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
     .card { background: #1b1b1b; border-radius: 12px; padding: 18px; }
     .notice { margin: 16px 0 0; padding: 12px 16px; border-radius: 10px; background: #332400; color: #ffd980; border: 1px solid #665000; display: none; }
@@ -22,6 +23,15 @@
     .report-copy button:hover,
     .ip-link:hover { border-color: #446a91; background: #1a2430; }
     .ip-link.is-selected { background: #20344a; border-color: #5f9ad6; color: #d9ecff; }
+    .modal[hidden] { display: none; }
+    .modal { position: fixed; inset: 0; z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 24px; }
+    .modal-backdrop { position: absolute; inset: 0; background: rgba(8, 12, 18, 0.8); }
+    .modal-dialog { position: relative; width: min(960px, 100%); max-height: calc(100vh - 48px); overflow: auto; background: #161616; border: 1px solid #343434; border-radius: 18px; padding: 22px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45); }
+    .modal-header { display: flex; justify-content: space-between; align-items: start; gap: 16px; margin-bottom: 18px; }
+    .modal-title-wrap h2 { margin: 0 0 4px; }
+    .modal-subtitle { color: #aaa; font-size: 13px; }
+    .modal-close { background: transparent; color: #eee; border: 1px solid #4a4a4a; border-radius: 10px; padding: 8px 12px; cursor: pointer; font: inherit; }
+    .modal-close:hover { background: #232323; border-color: #666; }
     .report-meta { margin-bottom: 18px; }
     .report-meta strong { display: block; margin-bottom: 6px; font-size: 18px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -83,9 +93,18 @@
     <table id="recent"></table>
   </div>
 
-  <div class="card full" id="ipReportCard" hidden>
-    <h2 id="ipReportTitle">IP Report</h2>
-    <div id="ipReport"></div>
+  <div class="modal" id="ipReportModal" hidden>
+    <div class="modal-backdrop" id="ipReportBackdrop"></div>
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="ipReportTitle">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <h2 id="ipReportTitle">IP Report</h2>
+          <div class="modal-subtitle">Per-IP incident-style breakdown from the current parser window.</div>
+        </div>
+        <button type="button" class="modal-close" id="ipReportClose">Close</button>
+      </div>
+      <div id="ipReport"></div>
+    </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
@@ -385,19 +404,17 @@
     }
 
     function renderEmptyIpReport() {
-      const card = document.querySelector('#ipReportCard');
-      card.hidden = true;
+      closeIpReportModal();
       document.querySelector('#ipReportTitle').textContent = 'IP Report';
       document.querySelector('#ipReport').innerHTML = '';
     }
 
     function renderIpReport(ip, report) {
-      const card = document.querySelector('#ipReportCard');
       const title = document.querySelector('#ipReportTitle');
       const body = document.querySelector('#ipReport');
 
-      card.hidden = false;
       title.textContent = `IP Report: ${ip}`;
+      openIpReportModal();
 
       if (!report) {
         body.innerHTML = '<p class="empty">No report data available for this IP.</p>';
@@ -469,6 +486,16 @@
       }
     }
 
+    function openIpReportModal() {
+      document.body.classList.add('modal-open');
+      document.querySelector('#ipReportModal').hidden = false;
+    }
+
+    function closeIpReportModal() {
+      document.body.classList.remove('modal-open');
+      document.querySelector('#ipReportModal').hidden = true;
+    }
+
     function renderPillList(items, formatter, emptyMessage) {
       if (!items.length) {
         return `<p class="empty">${escapeHtml(emptyMessage)}</p>`;
@@ -495,6 +522,17 @@
       ].join('\n');
     }
 
+    function bindModalEvents() {
+      document.querySelector('#ipReportClose').addEventListener('click', closeIpReportModal);
+      document.querySelector('#ipReportBackdrop').addEventListener('click', closeIpReportModal);
+      document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && !document.querySelector('#ipReportModal').hidden) {
+          closeIpReportModal();
+        }
+      });
+    }
+
+    bindModalEvents();
     load();
     setInterval(load, 60000);
   </script>
