@@ -36,7 +36,7 @@ The summary file is the contract between parsing and visualization. It contains 
 
 ### Static dashboard
 
-The dashboard is a static HTML page powered by D3.js. It fetches the JSON summary and turns it into charts and tables without requiring a database or a backend API.
+The dashboard is a static HTML page powered by D3.js. Its markup and client logic are separated into `public/index.html` and `public/app.js`, and it fetches the JSON summary without requiring a database or a backend API.
 
 ### Fail2Ban integration
 
@@ -53,6 +53,8 @@ The runtime model is intentionally simple:
 
 This separation keeps the dashboard read-only and easy to host as static content.
 
+Because it is static, access control must be enforced by the web server in front of it. A browser-only login form would not protect `log-summary.json` by itself.
+
 ## Why static JSON + static dashboard
 
 - It keeps deployment small and understandable.
@@ -60,6 +62,7 @@ This separation keeps the dashboard read-only and easy to host as static content
 - It works on basic Apache or shared Linux environments.
 - It makes the dashboard easy to inspect, back up, and troubleshoot.
 - It keeps the project educational and approachable.
+- It works well with Apache Basic Auth when the dashboard needs authenticated access.
 
 ## Limitations
 

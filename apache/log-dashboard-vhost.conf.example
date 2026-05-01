@@ -20,7 +20,7 @@
         Require valid-user
     </Location>
 
-    # Optional IP allowlist example:
+    # Optional defense-in-depth IP allowlist example:
     # <Location />
     #     Require ip YOUR.PUBLIC.IP.HERE
     # </Location>

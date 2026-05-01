@@ -18,6 +18,8 @@ RECENT_LIMIT = 100
 TIMELINE_LIMIT = 60
 IP_REPORT_RECENT_LIMIT = 10
 IP_REPORT_TOP_LIMIT = 10
+HOST_REPORT_RECENT_LIMIT = 10
+HOST_REPORT_TOP_LIMIT = 10
 
 EXTENDED_PATTERN = re.compile(
     r'^(?P<ip>\S+)\s+'
@@ -329,6 +331,45 @@ def build_ip_reports(rows):
     return reports
 
 
+def build_host_reports(rows):
+    grouped = defaultdict(list)
+    for row in rows:
+        grouped[row["host"]].append(row)
+
+    reports = {}
+    for host, host_rows in grouped.items():
+        sorted_rows = sorted(host_rows, key=lambda row: row["timestamp"])
+        reports[host] = {
+            "host": host,
+            "total": len(host_rows),
+            "first_seen": sorted_rows[0]["time"],
+            "last_seen": sorted_rows[-1]["time"],
+            "statuses": dict(Counter(row["status"] for row in host_rows)),
+            "categories": dict(Counter(row["category"] for row in host_rows)),
+            "top_paths": Counter(row["path"] for row in host_rows).most_common(
+                HOST_REPORT_TOP_LIMIT
+            ),
+            "top_ips": Counter(row["ip"] for row in host_rows).most_common(
+                HOST_REPORT_TOP_LIMIT
+            ),
+            "user_agents": Counter(row["ua"] for row in host_rows).most_common(
+                HOST_REPORT_TOP_LIMIT
+            ),
+            "recent": [
+                {
+                    "time": row["time"],
+                    "ip": row["ip"],
+                    "status": row["status"],
+                    "category": row["category"],
+                    "request": row["request"],
+                }
+                for row in sorted_rows[-HOST_REPORT_RECENT_LIMIT:]
+            ],
+        }
+
+    return reports
+
+
 def build_summary(rows):
     by_minute_category = defaultdict(Counter)
     for row in rows:
@@ -354,6 +395,7 @@ def build_summary(rows):
         "top_ips": Counter(row["ip"] for row in rows).most_common(TOP_LIMIT),
         "top_hosts": Counter(row["host"] for row in rows).most_common(TOP_LIMIT),
         "ip_reports": build_ip_reports(rows),
+        "host_reports": build_host_reports(rows),
         "timeline": timeline[-TIMELINE_LIMIT:],
         "recent": recent_rows,
     }

@@ -236,6 +236,185 @@
       "classification": "Scanner / recon"
     }
   },
+  "host_reports": {
+    "example.com": {
+      "host": "example.com",
+      "total": 24,
+      "first_seen": "29/Apr/2026:10:03:17 -0600",
+      "last_seen": "29/Apr/2026:10:12:01 -0600",
+      "statuses": {
+        "200": 9,
+        "301": 1,
+        "403": 3,
+        "404": 7,
+        "405": 3,
+        "400": 1
+      },
+      "categories": {
+        "normal": 8,
+        "xmlrpc": 5,
+        "wp-login": 3,
+        ".git probe": 2,
+        "graphql/api probing": 1,
+        "php-cgi exploit": 1,
+        "protocol probe": 1,
+        "known crawler": 1,
+        "video/app": 1,
+        ".env probe": 1
+      },
+      "top_paths": [
+        ["/", 5],
+        ["/xmlrpc.php", 5],
+        ["/wp-login.php", 3],
+        ["/.git/config", 2],
+        ["/graphql", 1]
+      ],
+      "top_ips": [
+        ["203.0.113.10", 8],
+        ["192.0.2.30", 4],
+        ["198.51.100.20", 3],
+        ["203.0.113.44", 3]
+      ],
+      "user_agents": [
+        ["Mozilla/5.0", 11],
+        ["WordPress.com", 5],
+        ["curl/8.0", 4],
+        ["ExampleBrowser/1.0", 2]
+      ],
+      "recent": [
+        {
+          "time": "29/Apr/2026:10:08:00 -0600",
+          "ip": "192.0.2.30",
+          "status": "404",
+          "category": "php-cgi exploit",
+          "request": "POST /php-cgi/php-cgi.exe?%2dd+allow_url_include%3don HTTP/1.1"
+        },
+        {
+          "time": "29/Apr/2026:10:09:00 -0600",
+          "ip": "192.0.2.30",
+          "status": "400",
+          "category": "protocol probe",
+          "request": "\\x16\\x03\\x01\\x02\\x00"
+        },
+        {
+          "time": "29/Apr/2026:10:12:01 -0600",
+          "ip": "203.0.113.10",
+          "status": "405",
+          "category": "xmlrpc",
+          "request": "POST /xmlrpc.php HTTP/1.1"
+        }
+      ]
+    },
+    "logs.example.com": {
+      "host": "logs.example.com",
+      "total": 15,
+      "first_seen": "29/Apr/2026:10:05:02 -0600",
+      "last_seen": "29/Apr/2026:10:11:40 -0600",
+      "statuses": {
+        "200": 6,
+        "404": 6,
+        "403": 2,
+        "206": 1
+      },
+      "categories": {
+        "normal": 6,
+        "xmlrpc": 2,
+        ".git probe": 1,
+        "graphql/api probing": 1,
+        "swagger/api docs": 1,
+        "known crawler": 1,
+        "video/app": 1,
+        "protocol probe": 1,
+        ".env probe": 1
+      },
+      "top_paths": [
+        ["/", 4],
+        ["/xmlrpc.php", 2],
+        ["/graphql", 1],
+        ["/swagger-ui", 1],
+        ["/.git/config", 1]
+      ],
+      "top_ips": [
+        ["203.0.113.10", 3],
+        ["192.0.2.30", 2],
+        ["203.0.113.44", 2],
+        ["198.51.100.77", 2]
+      ],
+      "user_agents": [
+        ["Mozilla/5.0", 8],
+        ["curl/8.0", 3],
+        ["WordPress.com", 2],
+        ["ExamplePlayer/1.0", 1]
+      ],
+      "recent": [
+        {
+          "time": "29/Apr/2026:10:10:09 -0600",
+          "ip": "203.0.113.10",
+          "status": "404",
+          "category": "graphql/api probing",
+          "request": "POST /graphql HTTP/1.1"
+        },
+        {
+          "time": "29/Apr/2026:10:11:40 -0600",
+          "ip": "192.0.2.30",
+          "status": "404",
+          "category": ".git probe",
+          "request": "GET /.git/config HTTP/1.1"
+        }
+      ]
+    },
+    "staging.example.com": {
+      "host": "staging.example.com",
+      "total": 9,
+      "first_seen": "29/Apr/2026:10:04:12 -0600",
+      "last_seen": "29/Apr/2026:10:11:52 -0600",
+      "statuses": {
+        "404": 6,
+        "403": 2,
+        "200": 1
+      },
+      "categories": {
+        ".env probe": 3,
+        "laravel debug/telescope": 2,
+        "wp-login": 2,
+        "normal": 1,
+        "swagger/api docs": 1
+      },
+      "top_paths": [
+        ["/.env", 3],
+        ["/telescope/requests", 2],
+        ["/wp-login.php", 2],
+        ["/swagger-ui", 1]
+      ],
+      "top_ips": [
+        ["198.51.100.20", 5],
+        ["203.0.113.44", 2],
+        ["198.51.100.77", 1],
+        ["203.0.113.10", 1]
+      ],
+      "user_agents": [
+        ["Mozilla/5.0", 5],
+        ["curl/8.0", 3],
+        ["ExampleBrowser/1.0", 1]
+      ],
+      "recent": [
+        {
+          "time": "29/Apr/2026:10:09:43 -0600",
+          "ip": "198.51.100.20",
+          "status": "404",
+          "category": "laravel debug/telescope",
+          "request": "GET /telescope/requests HTTP/1.1"
+        },
+        {
+          "time": "29/Apr/2026:10:11:52 -0600",
+          "ip": "198.51.100.20",
+          "status": "404",
+          "category": ".env probe",
+          "request": "GET /.env HTTP/1.1"
+        }
+      ]
+    }
+  },
   "timeline": [
     {"minute": "10:03", "normal": 2, "known crawler": 1},
     {"minute": "10:04", "xmlrpc": 2, "wp-login": 1},

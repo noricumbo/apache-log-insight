@@ -4,6 +4,8 @@
 
 The dashboard is a static HTML page that reads a JSON summary file and renders charts and tables with D3.js. Its purpose is to make recent Apache request patterns visible without adding a database or server-side application.
 
+The browser code should live outside the HTML file so the page structure and the rendering logic can evolve independently.
+
 ## JSON schema
 
 The parser produces a summary shaped like this:
@@ -36,6 +38,31 @@ The parser produces a summary shaped like this:
     ["logs.example.com", 320],
     ["staging.example.com", 180]
   ],
+  "host_reports": {
+    "example.com": {
+      "host": "example.com",
+      "total": 700,
+      "statuses": {
+        "200": 520,
+        "404": 110,
+        "405": 70
+      },
+      "categories": {
+        "normal": 500,
+        "xmlrpc": 120,
+        "wp-login": 80
+      },
+      "top_paths": [
+        ["/", 220],
+        ["/xmlrpc.php", 120],
+        ["/wp-login.php", 80]
+      ],
+      "top_ips": [
+        ["203.0.113.10", 120],
+        ["198.51.100.20", 84]
+      ]
+    }
+  },
   "timeline": [
     {"minute": "10:08", "xmlrpc": 3, "wp-login": 1},
     {"minute": "10:09", ".env probe": 2, "protocol probe": 1},
@@ -75,6 +102,20 @@ The top IPs table highlights the most active clients in the current summary wind
 
 This list is meant for quick visibility, not long-term attribution.
 
+Clicking an IP opens a focused report with host targeting, category counts, request paths, and recent requests for that client.
+
+## Top hosts
+
+The top hosts table highlights which domains or virtual hosts are receiving the most traffic in the current summary window.
+
+Clicking a host opens a focused report that summarizes:
+
+- category breakdown
+- status distribution
+- top requested paths
+- most active source IPs
+- recent requests to that host
+
 ## Recent requests
 
 The recent requests table shows the most recent parsed entries with safe HTML escaping before values are inserted into the page.
@@ -90,17 +131,16 @@ This makes it easier to inspect:
 
 The dashboard can refresh every 60 seconds by re-fetching the summary JSON. This keeps the page lightweight while still feeling near-real-time for basic monitoring.
 
+## Authentication model
+
+The dashboard remains a static frontend, so access control should be enforced by Apache before the page or JSON files are served. For this project, Apache Basic Auth is the practical login flow; a client-only login screen would not secure the underlying summary data.
+
 ## Sample data fallback
 
 For public demos and local development, the dashboard should try live data first and then fall back to `log-summary.sample.json` if live data is unavailable.
 
 When sample data is shown, the page should display a visible notice so viewers know they are not looking at production output.
 
-## Possible future feature: click IP to view details
+## Detail drilldowns
 
-A useful next step would be making an IP row clickable to show a focused breakdown for that client, such as:
-
-- category counts
-- request paths
-- minute-by-minute activity
-- related hosts
+The dashboard supports click-through drilldowns from both the Top IPs and Top hosts tables using precomputed summary data from the parser.

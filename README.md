@@ -59,6 +59,7 @@ apache-log-insight/
 ├── parser/
 │   └── parse_logs.py
 └── public/
+    ├── app.js
     ├── index.html
     └── data/
         └── log-summary.sample.json
@@ -110,7 +111,7 @@ If both are present, the command-line `--limit` value takes precedence over `.en
 
 ## Dashboard
 
-The static dashboard lives at [public/index.html](/Users/nori/Sites/apache-log-insight/public/index.html).
+The static dashboard lives at [public/index.html](/Users/nori/Sites/apache-log-insight/public/index.html), with its client logic separated into [public/app.js](/Users/nori/Sites/apache-log-insight/public/app.js).
 
 Behavior:
 
@@ -132,6 +133,7 @@ Public-safe examples are included in:
 
 Important:
 
+- Protect the dashboard with authentication if it is exposed outside a trusted local environment.
 - The default deny vhost should load first.
 - Apache vhost load order matters.
 - Example domains and paths are placeholders only.

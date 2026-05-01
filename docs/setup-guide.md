@@ -44,6 +44,8 @@ Serve the `public/` directory as static content. The dashboard should load:
 - `/data/log-summary.json` for live output
 - `/data/log-summary.sample.json` as a fallback for demos and local testing
 
+The dashboard JavaScript lives in `public/app.js`, so both that file and the JSON data need to be reachable from the same authenticated vhost.
+
 ## Cron setup
 
 To refresh the summary every minute, use a cron entry similar to:
@@ -69,13 +71,13 @@ Keep the dashboard read-only from the browser's perspective. The JSON file shoul
 
 ## Optional Basic Auth
 
-For a private dashboard, Basic Auth can add a simple access layer. Use placeholder paths and credentials in public examples, and keep real auth files out of the repository.
+For a private dashboard, Basic Auth is the recommended login layer for this static project. Use placeholder paths and credentials in public examples, and keep real auth files out of the repository.
 
 ## Optional IP allowlist
 
 You can further restrict access to known source networks or a trusted public IP address such as `YOUR.PUBLIC.IP.HERE`.
 
-Treat allowlists as optional defense in depth, not the only control.
+Treat allowlists as optional defense in depth, not the primary login control.
 
 ## Default deny vhost for unknown hosts
 
