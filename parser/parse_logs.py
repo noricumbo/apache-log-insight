@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import json
+import os
 import re
 import sys
 from collections import Counter, defaultdict, deque
@@ -9,7 +10,9 @@ from pathlib import Path
 
 DEFAULT_LOG = "/var/log/httpd/access_log"
 DEFAULT_OUT = "public/data/log-summary.json"
-DEFAULT_LIMIT = 5000
+DEFAULT_LIMIT = 8600
+ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
+ENV_LIMIT_KEY = "PARSER_LIMIT"
 TOP_LIMIT = 20
 RECENT_LIMIT = 100
 TIMELINE_LIMIT = 60
@@ -42,6 +45,9 @@ COMBINED_PATTERN = re.compile(
 
 
 def parse_args():
+    env = load_env_file(ENV_FILE)
+    limit_default = load_int_setting(ENV_LIMIT_KEY, DEFAULT_LIMIT, env)
+
     parser = argparse.ArgumentParser(
         description="Parse Apache access logs into dashboard summary JSON."
     )
@@ -54,10 +60,40 @@ def parse_args():
     parser.add_argument(
         "--limit",
         type=int,
-        default=DEFAULT_LIMIT,
+        default=limit_default,
         help="Number of most recent log lines to parse.",
     )
     return parser.parse_args()
+
+
+def load_env_file(path):
+    values = {}
+    if not path.exists():
+        return values
+
+    for raw_line in path.read_text().splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip("'\"")
+        if key:
+            values[key] = value
+
+    return values
+
+
+def load_int_setting(name, fallback, file_values):
+    raw_value = os.getenv(name, file_values.get(name))
+    if raw_value in (None, ""):
+        return fallback
+
+    try:
+        return int(raw_value)
+    except ValueError as error:
+        raise SystemExit(f"Invalid integer for {name}: {raw_value}") from error
 
 
 def parse_timestamp(value):

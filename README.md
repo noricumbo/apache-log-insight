@@ -35,6 +35,7 @@ More detail is available in [docs/architecture.md](/Users/nori/Sites/apache-log-
 
 ```text
 apache-log-insight/
+├── .env.example
 ├── README.md
 ├── .gitignore
 ├── apache/
@@ -76,25 +77,35 @@ apache-log-insight/
 
 The repository ships with [public/data/log-summary.sample.json](/Users/nori/Sites/apache-log-insight/public/data/log-summary.sample.json) so the dashboard can run without production logs.
 
+### Optional environment file
+
+You can create a repo-root `.env` file from [.env.example](/Users/nori/Sites/apache-log-insight/.env.example) to keep parser defaults out of the code.
+
+```env
+PARSER_LIMIT=8600
+```
+
 ### Run the parser manually
 
 ```bash
 python3 parser/parse_logs.py \
   --log /var/log/httpd/access_log \
   --out public/data/log-summary.json \
-  --limit 5000
+  --limit 8600
 ```
 
 Defaults:
 
 - `--log`: `/var/log/httpd/access_log`
 - `--out`: `public/data/log-summary.json`
-- `--limit`: `5000`
+- `--limit`: `8600`, or `PARSER_LIMIT` from `.env`
+
+If both are present, the command-line `--limit` value takes precedence over `.env`.
 
 ### Cron example
 
 ```cron
-* * * * * /usr/bin/python3 /path/to/repo/parser/parse_logs.py --log /var/log/httpd/access_log --out /var/www/log-dashboard/public/data/log-summary.json --limit 5000
+* * * * * /usr/bin/python3 /path/to/repo/parser/parse_logs.py --log /var/log/httpd/access_log --out /var/www/log-dashboard/public/data/log-summary.json --limit 8600
 ```
 
 ## Dashboard

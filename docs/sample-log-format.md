@@ -85,5 +85,5 @@ The most important fields for this dashboard are:
 python3 parser/parse_logs.py \
   --log /var/log/httpd/access_log \
   --out public/data/log-summary.json \
-  --limit 5000
+  --limit 8600
 ```

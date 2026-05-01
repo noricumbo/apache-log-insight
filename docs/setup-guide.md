@@ -22,13 +22,19 @@ The examples use placeholders only:
 
 Run the parser against an Apache access log and write the dashboard summary into the public data directory.
 
+Optional: create a repo-root `.env` file to define the parser limit without hardcoding it in commands.
+
+```env
+PARSER_LIMIT=8600
+```
+
 Example:
 
 ```bash
 python3 parser/parse_logs.py \
   --log /var/log/httpd/access_log \
   --out /var/www/log-dashboard/public/data/log-summary.json \
-  --limit 5000
+  --limit 8600
 ```
 
 ## Dashboard setup
@@ -43,7 +49,7 @@ Serve the `public/` directory as static content. The dashboard should load:
 To refresh the summary every minute, use a cron entry similar to:
 
 ```cron
-* * * * * /usr/bin/python3 /path/to/repo/parser/parse_logs.py --log /var/log/httpd/access_log --out /var/www/log-dashboard/public/data/log-summary.json --limit 5000
+* * * * * /usr/bin/python3 /path/to/repo/parser/parse_logs.py --log /var/log/httpd/access_log --out /var/www/log-dashboard/public/data/log-summary.json --limit 8600
 ```
 
 Adjust paths for your environment.

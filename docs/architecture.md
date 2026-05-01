@@ -28,7 +28,7 @@ The input is a standard Apache `access_log` or a closely related custom log form
 
 ### Python parser
 
-The parser reads recent log lines, handles malformed input defensively, classifies requests into categories, and produces a JSON summary designed for dashboard use.
+The parser reads recent log lines, handles malformed input defensively, classifies requests into categories, and produces a JSON summary designed for dashboard use. Its recent-line limit can come from a repo-root `.env` file or be overridden on the command line for one-off runs and cron jobs.
 
 ### JSON summary
 
